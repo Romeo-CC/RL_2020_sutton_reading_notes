@@ -66,6 +66,7 @@ def simulate(runs, time, bandits):
                 rewards[i, r, t] = reward
                 if action == bandit.best_action:
                     best_action_counts[i, r, t] = 1
+    
     mean_best_action_counts = best_action_counts.mean(axis=1)
     mean_rewards = rewards.mean(axis=1)
     return mean_best_action_counts, mean_rewards
