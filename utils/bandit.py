@@ -3,6 +3,7 @@ from tqdm import tqdm
 
 
 class Naive_Bandit:
+    # Implementation of the epsilon-greedy algorithm
     def __init__(self, k_arms: int=10, epsilon: float=0., initial: float=0.):
         self.k = k_arms
         self.indices = np.arange(self.k)
@@ -42,10 +43,12 @@ class Naive_Bandit:
         reward = np.random.randn() + self.q_true[action]
         
         self.time += 1
+
         self.average_reward += (reward - self.average_reward) / self.time
 
         self.action_count[action] += 1
-        # update estimation using sample averages
+        # Update estimation using sample averages
+        # Incremental Implementation
         self.q_estimation[action] += (reward - self.q_estimation[action]) / self.action_count[action]
         
         return reward
@@ -71,3 +74,69 @@ def simulate(runs, time, bandits):
     mean_rewards = rewards.mean(axis=1)
     return mean_best_action_counts, mean_rewards
 
+
+
+class Bandit(object):
+    def __init__(self, k_arms: int=10, epsilon: float=0., initial: float=0., 
+        step_size: float=0.1, sample_average: bool=False, UCB_param: float=None,
+        gradient: bool=False, gradient_baseline: bool=False,true_reward: float=0.):
+
+        self.k = k_arms
+        self.indices = np.arange(k_arms)
+        self.epsilon = epsilon
+        self.initial = initial
+        self.step_size = step_size
+        self.sample_average = sample_average
+        self.UCB_param = UCB_param
+        self.gradient = gradient
+        self.gradient_baseline = gradient_baseline
+        self.true_reward = true_reward
+        self.average_reward = 0
+        self.time = 0
+        
+    
+    def reset(self):
+        # real reward for each action
+        self.q_true = np.random.randn(self.k) + self.true_reward
+
+        # estimation for each action
+        self.q_estimation = np.zeros(self.k) + self.initial
+
+        # counter for each arm
+        self.action_count = np.zeros(self.k)
+
+        self.best_action = np.argmax(self.q_true)
+
+        self.time = 0
+
+
+    def act(self):
+        # exploration
+        if np.random.rand() < self.epsilon:
+            return np.random.choice(self.indices)
+
+        # exploitation
+        q_best = np.max(self.q_estimation)
+        return np.random.choice(np.where(self.q_estimation == q_best)[0])
+
+    
+    def step(self, action):
+        reward = np.random.randn() + self.q_true[action]
+        self.time += 1
+        self.average_reward += (reward - self.average_reward) / self.time
+        self.action_count[action] += 1
+
+        if self.sample_average:
+            self.q_estimation[action] += (reward - self.q_estimation[action]) / self.action_count[action]
+
+
+        else:
+            # exponential rencency-weighted average
+            self.q_estimation[action] += self.step_size * (reward - self.q_estimation[action])
+            
+        return reward
+        
+        
+        
+        
+       
