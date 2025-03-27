@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
+EPSILON = 1e-5 # avoid devide by zero
 
 class Naive_Bandit:
     # Implementation of the epsilon-greedy algorithm
@@ -78,16 +79,16 @@ def simulate(runs, time, bandits):
 
 class Bandit(object):
     def __init__(self, k_arms: int=10, epsilon: float=0., initial: float=0., 
-        step_size: float=0.1, sample_average: bool=False, UCB_param: float=None,
+        step_size: float=0.1, sample_averages: bool=False, UCB_param: float=None,
         gradient: bool=False, gradient_baseline: bool=False,true_reward: float=0.):
 
         self.k = k_arms
         self.indices = np.arange(k_arms)
         self.epsilon = epsilon
         self.initial = initial
-        self.step_size = step_size
-        self.sample_average = sample_average
-        self.UCB_param = UCB_param
+        self.step_size = step_size # alpha
+        self.sample_averages = sample_averages
+        self.UCB_param = UCB_param # c
         self.gradient = gradient
         self.gradient_baseline = gradient_baseline
         self.true_reward = true_reward
@@ -115,6 +116,13 @@ class Bandit(object):
         if np.random.rand() < self.epsilon:
             return np.random.choice(self.indices)
 
+        # UCB action selection
+        if self.UCB_param is not None:
+            uncertainty = self.UCB_param * np.sqrt(np.log(self.time + 1) / (self.action_count + EPSILON))
+            UCB_estimation = self.q_estimation + uncertainty
+            q_best = np.max(UCB_estimation)
+            return np.random.choice(np.where(UCB_estimation == q_best)[0])
+
         # exploitation
         q_best = np.max(self.q_estimation)
         return np.random.choice(np.where(self.q_estimation == q_best)[0])
@@ -126,7 +134,7 @@ class Bandit(object):
         self.average_reward += (reward - self.average_reward) / self.time
         self.action_count[action] += 1
 
-        if self.sample_average:
+        if self.sample_averages:
             self.q_estimation[action] += (reward - self.q_estimation[action]) / self.action_count[action]
 
 
