@@ -123,6 +123,11 @@ class Bandit(object):
             q_best = np.max(UCB_estimation)
             return np.random.choice(np.where(UCB_estimation == q_best)[0])
 
+        if self.gradient:
+            exp_est = np.exp(self.q_estimation)
+            self.action_prob = exp_est / np.sum(exp_est)
+            return np.random.choice(self.indices, p=self.action_prob)
+
         # exploitation
         q_best = np.max(self.q_estimation)
         return np.random.choice(np.where(self.q_estimation == q_best)[0])
@@ -137,6 +142,15 @@ class Bandit(object):
         if self.sample_averages:
             self.q_estimation[action] += (reward - self.q_estimation[action]) / self.action_count[action]
 
+        elif self.gradient:
+            one_hot = np.zeros(self.k)
+            one_hot[action] = 1
+            if self.gradient_baseline:
+                baseline = self.average_reward
+            else:
+                baseline = 0
+               
+            self.q_estimation += self.step_size * (reward - baseline) * (one_hot - self.action_prob)
 
         else:
             # exponential rencency-weighted average
